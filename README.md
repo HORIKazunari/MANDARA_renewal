@@ -1,0 +1,2 @@
+# MANDARA_renewal
+Windows上のGISアプリケーションソフトウェア MANDARA を継続的に更新していくプロジェクト
