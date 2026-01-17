@@ -1,0 +1,32 @@
+# EditorConfig is awesome: https://EditorConfig.org
+
+root = true
+
+[*.vb]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# VB.NET specific rules
+# 変数は使用前に初期化する
+dotnet_diagnostic.BC42030.severity = error
+dotnet_diagnostic.BC42104.severity = error
+dotnet_diagnostic.BC42109.severity = error
+
+# 未使用変数は削除する
+dotnet_diagnostic.BC42024.severity = suggestion
+
+# 関数は値を返す
+dotnet_diagnostic.BC42105.severity = warning
+dotnet_diagnostic.BC42353.severity = warning
+
+# XMLコメントの警告は情報レベルに
+dotnet_diagnostic.BC42307.severity = suggestion
+dotnet_diagnostic.BC42304.severity = suggestion
+dotnet_diagnostic.BC42306.severity = suggestion
+
+# 古いスタイルの警告
+dotnet_diagnostic.BC42025.severity = warning
+dotnet_diagnostic.BC40000.severity = suggestion

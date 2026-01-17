@@ -1,0 +1,4 @@
+* text=auto
+*.vb text eol=crlf
+*.sln text eol=crlf
+*.vbproj text eol=crlf

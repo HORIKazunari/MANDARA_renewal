@@ -1,0 +1,116 @@
+name: Build MANDARA11
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+    
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v2
+    
+    - name: Restore NuGet packages for UserControl
+      run: nuget restore UserControlVer1001\UserControl.sln
+      
+    - name: Build UserControl solution
+      run: msbuild UserControlVer1001\UserControl.sln /p:Configuration=Release /p:Platform="Any CPU" /p:WarningLevel=0
+    
+    - name: Restore NuGet packages for MANDARA11
+      run: nuget restore mandara2.sln
+    
+    - name: Build MANDARA11 solution
+      run: msbuild mandara11.sln /p:Configuration=Release /p:Platform=x86 /p:WarningLevel=0
+      
+    - name: List build output
+      run: |
+        Write-Host "Build completed. Checking output directory..."
+        Get-ChildItem -Path "mandara11\bin\Release" -Recurse | Select-Object FullName
+      shell: pwsh
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: MANDARA11-Release
+        path: |
+          mandara11/bin/Release/MANDARA11.exe
+          mandara11/bin/Release/*.dll
+          mandara11/bin/Release/*.config
+          mandara11/bin/Release/MarkShape.csv
+          mandara11/bin/Release/HELP/**/*
+        if-no-files-found: error
+    
+    - name: Create release package
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        $version = "11.0.0.1"
+        $releaseDir = "mandara11\bin\Release"
+        $zipFile = "MANDARA11-v$version.zip"
+        
+        # 必要なファイルを収集
+        $filesToInclude = @(
+          "$releaseDir\MANDARA11.exe",
+          "$releaseDir\*.dll",
+          "$releaseDir\*.config",
+          "$releaseDir\MarkShape.csv"
+        )
+        
+        # HELPフォルダも含める
+        $helpFiles = Get-ChildItem -Path "$releaseDir\HELP" -Recurse -File
+        
+        # 存在するファイルのみを取得
+        $existingFiles = @()
+        foreach ($pattern in $filesToInclude) {
+          $files = Get-Item $pattern -ErrorAction SilentlyContinue
+          if ($files) {
+            $existingFiles += $files
+          }
+        }
+        
+        if ($existingFiles.Count -gt 0) {
+          # 一時フォルダを作成してファイルを配置
+          $tempDir = "MANDARA11_Release"
+          New-Item -ItemType Directory -Force -Path $tempDir | Out-Null
+          
+          # ファイルをコピー
+          foreach ($file in $existingFiles) {
+            Copy-Item $file.FullName -Destination $tempDir
+          }
+          
+          # HELPフォルダをコピー
+          if (Test-Path "$releaseDir\HELP") {
+            Copy-Item -Path "$releaseDir\HELP" -Destination "$tempDir\HELP" -Recurse
+          }
+          
+          # ZIPファイルを作成
+          Compress-Archive -Path "$tempDir\*" -DestinationPath $zipFile -Force
+          
+          # 一時フォルダを削除
+          Remove-Item $tempDir -Recurse -Force
+          
+          Write-Host "Created release package: $zipFile"
+          Write-Host "Package size: $((Get-Item $zipFile).Length) bytes"
+        } else {
+          Write-Error "No files found to package"
+          exit 1
+        }
+      shell: pwsh
+    
+    - name: Upload release package
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      uses: actions/upload-artifact@v4
+      with:
+        name: MANDARA11-Package
+        path: MANDARA11-v*.zip
+        if-no-files-found: error
